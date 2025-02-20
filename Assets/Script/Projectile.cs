@@ -6,12 +6,16 @@ public class Projectile : MonoBehaviour
     public float speed = 5f;
     public int damage = 1;
     private GameObject target;
+    private ObjectPool pool;
 
-    public VisualEffect explosionEffect; // Thay đổi từ GameObject sang VisualEffect
+    public VisualEffect explosionEffectPrefab; // Prefab của hiệu ứng nổ
+    private ObjectPool vfxPool; // Pool cho hiệu ứng VFX
 
-    public void SetTarget(GameObject targetEnemy)
+    public void SetTarget(GameObject targetEnemy, ObjectPool projectilePool, ObjectPool effectPool)
     {
         target = targetEnemy;
+        pool = projectilePool;
+        vfxPool = effectPool;
     }
 
     void Update()
@@ -30,16 +34,29 @@ public class Projectile : MonoBehaviour
                     enemyHealth.TakeDamage(damage);
                 }
 
-                // Kích hoạt hiệu ứng VFX thay vì Instantiate Prefab
-                if (explosionEffect != null)
+                // Lấy hiệu ứng VFX từ pool và phát
+                GameObject vfxObject = vfxPool.GetObject(transform.position, Quaternion.identity);
+                VisualEffect vfxInstance = vfxObject.GetComponent<VisualEffect>();
+                if (vfxInstance != null)
                 {
-                    VisualEffect vfxInstance = Instantiate(explosionEffect, transform.position, Quaternion.identity);
                     vfxInstance.Play();
-                    Destroy(vfxInstance.gameObject, 2f); // Hủy sau 2 giây để tránh rác bộ nhớ
                 }
 
-                Destroy(gameObject);
+                ReturnToPool();
             }
+        }
+        else
+        {
+            ReturnToPool();
+        }
+    }
+
+    private void ReturnToPool()
+    {
+        target = null;
+        if (pool != null)
+        {
+            pool.ReturnObject(gameObject);
         }
         else
         {
